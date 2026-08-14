@@ -1,3 +1,6 @@
 <Solution>
-  <Project Path="ZM.ApiGateway/ZM.ApiGateway.csproj" />
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
+  <Project Path="ZM.ApiGateway.Api/ZM.ApiGateway.Api.csproj" />
 </Solution>
