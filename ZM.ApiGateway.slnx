@@ -4,7 +4,7 @@
   </Folder>
   <Folder Name="/services/">
     <Project Path="ZM.Orders.Api/ZM.Orders.Api.csproj" />
-    <Project Path="ZM.Paymets.Api/ZM.Paymets.Api.csproj" />
+    <Project Path="ZM.Payments.Api/ZM.Payments.Api.csproj" />
     <Project Path="ZM.Users.Api/ZM.Users.Api.csproj" />
   </Folder>
   <Project Path="docker-compose.dcproj">

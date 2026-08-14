@@ -12,19 +12,19 @@ EXPOSE 5301
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["ZM.Paymets.Api/ZM.Paymets.Api.csproj", "ZM.Paymets.Api/"]
-RUN dotnet restore "./ZM.Paymets.Api/ZM.Paymets.Api.csproj"
+COPY ["ZM.Payments.Api/ZM.Payments.Api.csproj", "ZM.Payments.Api/"]
+RUN dotnet restore "./ZM.Payments.Api/ZM.Payments.Api.csproj"
 COPY . .
-WORKDIR "/src/ZM.Paymets.Api"
-RUN dotnet build "./ZM.Paymets.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/ZM.Payments.Api"
+RUN dotnet build "./ZM.Payments.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./ZM.Paymets.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./ZM.Payments.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "ZM.Paymets.Api.dll"]
+ENTRYPOINT ["dotnet", "ZM.Payments.Api.dll"]
