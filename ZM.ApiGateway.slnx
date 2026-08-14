@@ -1,6 +1,13 @@
 <Solution>
+  <Folder Name="/gateway/">
+    <Project Path="ZM.ApiGateway.Api/ZM.ApiGateway.Api.csproj" />
+  </Folder>
+  <Folder Name="/services/">
+    <Project Path="ZM.Orders.Api/ZM.Orders.Api.csproj" />
+    <Project Path="ZM.Paymets.Api/ZM.Paymets.Api.csproj" />
+    <Project Path="ZM.Users.Api/ZM.Users.Api.csproj" />
+  </Folder>
   <Project Path="docker-compose.dcproj">
     <Build />
   </Project>
-  <Project Path="ZM.ApiGateway.Api/ZM.ApiGateway.Api.csproj" />
 </Solution>
