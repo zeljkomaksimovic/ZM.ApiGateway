@@ -7,6 +7,9 @@
     <Project Path="ZM.Payments.Api/ZM.Payments.Api.csproj" />
     <Project Path="ZM.Users.Api/ZM.Users.Api.csproj" />
   </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="NuGet.config" />
+  </Folder>
   <Project Path="docker-compose.dcproj">
     <Build />
   </Project>

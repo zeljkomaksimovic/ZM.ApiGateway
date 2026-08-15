@@ -1,3 +1,5 @@
+using ZM.ApiGateway.Api.Extensions;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
@@ -5,6 +7,9 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+
+builder.Services.AddJwtAuthentication(builder.Configuration);
+builder.Services.AddGatewayAuthorization();
 
 var app = builder.Build();
 
@@ -14,6 +19,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseHttpsRedirection();
 app.MapReverseProxy();
 app.Run();
