@@ -57,7 +57,19 @@ services:
         aliases:
           - payments.api
 
+  redis:
+      image: redis:7-alpine
+      ports:
+        - "6379:6379"
+      volumes:
+        - gatewayredisvolume:/data
+      networks:
+        - proxybackend
+
 networks:
   proxybackend:
     name: proxybackend
     driver: bridge
+
+volumes:
+  gatewayredisvolume:
