@@ -1,17 +1,19 @@
-﻿using Microsoft.IdentityModel.JsonWebTokens;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using ZM.ApiGateway.Api.Extensions;
 using ZM.RateLimiter.Core.Abstractions;
+using ZM.RateLimiter.Core.Models;
 
 namespace ZM.ApiGateway.Api.Middlewares
 {
     public sealed class RateLimitingMiddleware
     {
         private readonly RequestDelegate _next;
+        private readonly ILogger<RateLimitingMiddleware> _logger;
 
-        public RateLimitingMiddleware(RequestDelegate next)
+        public RateLimitingMiddleware(RequestDelegate next, ILogger<RateLimitingMiddleware> logger)
         {
             _next = next;
+            _logger = logger;
         }
 
         public async Task InvokeAsync(HttpContext context, IRateLimiter rateLimiter)
@@ -21,21 +23,34 @@ namespace ZM.ApiGateway.Api.Middlewares
             if (string.IsNullOrWhiteSpace(clientKey))
             {
                 await _next(context);
+
                 return;
             }
 
             var proxyFeature = context.GetReverseProxyFeature();
-
             var resource = proxyFeature.Route.Config.RouteId;
 
-            var outcome = await rateLimiter.ConsumeAsync(
-                clientKey,
-                resource,
-                context.RequestAborted);
+            RateLimitOutcome? outcome;
+
+            try
+            {
+                outcome = await rateLimiter.ConsumeAsync(
+                    clientKey,
+                    resource,
+                    context.RequestAborted);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,"Rate limiting failed for client {ClientKey} on resource {Resource}.", clientKey, resource);
+                context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+
+                return;
+            }
 
             if (outcome is null)
             {
-                await _next(context);
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+
                 return;
             }
 
@@ -46,6 +61,7 @@ namespace ZM.ApiGateway.Api.Middlewares
             if (!result.IsAllowed)
             {
                 context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+
                 return;
             }
 
