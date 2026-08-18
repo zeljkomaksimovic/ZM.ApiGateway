@@ -11,6 +11,7 @@
     <File Path="NuGet.config" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="ZM.ApiGateway.Api.IntegrationTests/ZM.ApiGateway.Api.IntegrationTests.csproj" Id="3f95535e-ebc1-4c4e-adaf-8cb207b35e4a" />
     <Project Path="ZM.ApiGateway.Api.UnitTests/ZM.ApiGateway.Api.UnitTests.csproj" Id="e12e505e-6696-4172-a6e4-3e980a83d3aa" />
   </Folder>
   <Project Path="docker-compose.dcproj">
