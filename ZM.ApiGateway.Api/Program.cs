@@ -25,3 +25,5 @@ app.MapReverseProxy(proxyPipeline =>
 });
 
 app.Run();
+
+public partial class Program { }
