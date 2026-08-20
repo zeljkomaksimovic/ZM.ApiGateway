@@ -225,6 +225,57 @@ namespace ZM.ApiGateway.Api.IntegrationTests
             factory.Downstream.Requests.Should().BeEmpty();
         }
 
+        [Fact]
+        public async Task HealthLive_WithoutToken_ReturnsHealthy()
+        {
+            // Arrange
+            using var factory = new GatewayWebApplicationFactory(_redis.ConnectionString);
+            using var client = factory.CreateClient();
+
+            // Act
+            var response = await client.GetAsync("/health/live");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            (await response.Content.ReadAsStringAsync()).Should().Be("Healthy");
+
+            // Mapped ahead of the proxy, so it answers locally.
+            factory.Downstream.Requests.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task HealthReady_WhenRedisIsAvailable_ReturnsHealthy()
+        {
+            // Arrange
+            using var factory = new GatewayWebApplicationFactory(_redis.ConnectionString);
+            using var client = factory.CreateClient();
+
+            // Act
+            var response = await client.GetAsync("/health/ready");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            (await response.Content.ReadAsStringAsync()).Should().Be("Healthy");
+        }
+
+        [Fact]
+        public async Task HealthReady_WhenRedisIsUnavailable_ReturnsServiceUnavailable()
+        {
+            // Arrange
+            using var factory = new GatewayWebApplicationFactory(UnreachableRedis);
+            using var client = factory.CreateClient();
+
+            // Act
+            var response = await client.GetAsync("/health/ready");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+            (await response.Content.ReadAsStringAsync()).Should().Be("Unhealthy");
+        }
+
+        private const string UnreachableRedis =
+            "127.0.0.1:1,connectTimeout=200,connectRetry=0,syncTimeout=200,asyncTimeout=200";
+
         private static string NewClientId() => Guid.NewGuid().ToString();
 
         private static Dictionary<string, string?> WithLimit(int limit) => new()
