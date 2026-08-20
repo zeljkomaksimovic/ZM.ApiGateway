@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using System.Diagnostics;
+using System.Security.Claims;
 using ZM.ApiGateway.Api.Extensions;
 using ZM.RateLimiter.Core.Abstractions;
 using ZM.RateLimiter.Core.Models;
@@ -19,6 +20,7 @@ namespace ZM.ApiGateway.Api.Middlewares
         public async Task InvokeAsync(HttpContext context, IRateLimiter rateLimiter)
         {
             var clientKey = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var traceId = Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier;
 
             if (string.IsNullOrWhiteSpace(clientKey))
             {
@@ -41,7 +43,11 @@ namespace ZM.ApiGateway.Api.Middlewares
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex,"Rate limiting failed for client {ClientKey} on resource {Resource}.", clientKey, resource);
+                _logger.LogError(ex, "Rate limiter failed for client {ClientKey} on resource {Resource}. TraceId: {TraceId}.",
+                    clientKey,
+                    resource,
+                    traceId);
+
                 context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
 
                 return;
@@ -49,6 +55,11 @@ namespace ZM.ApiGateway.Api.Middlewares
 
             if (outcome is null)
             {
+                _logger.LogWarning("No rate-limit policy found for client {ClientKey} on resource {Resource}. TraceId: {TraceId}.",
+                    clientKey,
+                    resource,
+                    traceId);
+
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
 
                 return;
@@ -60,10 +71,23 @@ namespace ZM.ApiGateway.Api.Middlewares
 
             if (!result.IsAllowed)
             {
+                _logger.LogWarning("Rate limit exceeded for client {ClientKey} on resource {Resource}. TraceId: {TraceId}. Retry after {RetryAfter}.",
+                    clientKey,
+                    resource,
+                    traceId,
+                    result.RetryAfter);
+
                 context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
 
                 return;
             }
+
+            _logger.LogInformation("Rate limit check passed for client {ClientKey} on resource {Resource}. TraceId: {TraceId}. Remaining: {Remaining}/{Limit}.",
+                clientKey,
+                resource,
+                traceId,
+                result.Remaining,
+                result.Limit);
 
             await _next(context);
         }
