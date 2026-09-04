@@ -9,6 +9,7 @@ namespace ZM.ApiGateway.Api.IntegrationTests.Infrastructure
     public sealed class RecordingHandler : HttpMessageHandler
     {
         private readonly List<ForwardedRequest> _requests = [];
+        private readonly Queue<HttpStatusCode> _scripted = new();
         private readonly Lock _gate = new();
 
         public IReadOnlyList<ForwardedRequest> Requests
@@ -22,6 +23,17 @@ namespace ZM.ApiGateway.Api.IntegrationTests.Infrastructure
             }
         }
 
+        public void Respond(params HttpStatusCode[] statuses)
+        {
+            lock (_gate)
+            {
+                foreach (var status in statuses)
+                {
+                    _scripted.Enqueue(status);
+                }
+            }
+        }
+
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var forwarded = new ForwardedRequest(
@@ -29,12 +41,18 @@ namespace ZM.ApiGateway.Api.IntegrationTests.Infrastructure
                 request.RequestUri!,
                 request.Headers.Authorization?.ToString());
 
+            HttpStatusCode status;
+
             lock (_gate)
             {
                 _requests.Add(forwarded);
+
+                status = _scripted.Count > 0
+                    ? _scripted.Dequeue()
+                    : HttpStatusCode.OK;
             }
 
-            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            var response = new HttpResponseMessage(status)
             {
                 Content = new StringContent("""[{"summary":"Warm"}]""", Encoding.UTF8, "application/json")
             };

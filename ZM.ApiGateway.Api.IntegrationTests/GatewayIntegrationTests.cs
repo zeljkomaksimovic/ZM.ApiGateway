@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -223,6 +224,50 @@ namespace ZM.ApiGateway.Api.IntegrationTests
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
             factory.Downstream.Requests.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task Request_WhenDownstreamFailsThenSucceeds_IsRetriedAndReturnsSuccess()
+        {
+            // Arrange
+            var clientId = NewClientId();
+
+            using var factory = new GatewayWebApplicationFactory(
+                _redis.ConnectionString,
+                useResilientForwarder: true);
+
+            factory.Downstream.Respond(HttpStatusCode.ServiceUnavailable, HttpStatusCode.OK);
+
+            using var client = CreateClient(factory, clientId, "user");
+
+            // Act
+            var response = await client.GetAsync("/api/users");
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            factory.Downstream.Requests.Should().HaveCount(2);
+        }
+
+        [Fact]
+        public async Task Request_WhenPostFails_IsNotRetried()
+        {
+            // Arrange
+            var clientId = NewClientId();
+
+            using var factory = new GatewayWebApplicationFactory(
+                _redis.ConnectionString,
+                useResilientForwarder: true);
+
+            factory.Downstream.Respond(HttpStatusCode.ServiceUnavailable, HttpStatusCode.OK);
+
+            using var client = CreateClient(factory, clientId, "user");
+
+            // Act
+            var response = await client.PostAsync("/api/users", new StringContent("{}", Encoding.UTF8, "application/json"));
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+            factory.Downstream.Requests.Should().ContainSingle();
         }
 
         [Fact]
