@@ -2,6 +2,7 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Moq;
+using System.Net;
 using System.Security.Claims;
 using Yarp.ReverseProxy.Model;
 using ZM.ApiGateway.Api.Middlewares;
@@ -184,14 +185,24 @@ namespace ZM.ApiGateway.Api.UnitTests.Middlewares
         [AutoMoqInlineData((string?)null)]
         [AutoMoqInlineData("")]
         [AutoMoqInlineData("   ")]
-        public async Task InvokeAsync_WhenClientIdentityIsMissing_CallsNextAndDoesNotCallRateLimiter(
+        public async Task InvokeAsync_WhenClientIdentityIsMissing_MetersByRemoteIpAddress(
             string? clientId,
             [Frozen] Mock<IRateLimiter> rateLimiter,
+            [Frozen] Mock<IReverseProxyFeature> proxyFeature,
             [Frozen] Mock<RequestDelegate> next,
             RateLimitingMiddleware middleware)
         {
             //Arrange
+            var resource = "order-route";
+
+            proxyFeature
+                .SetupGet(x => x.Route)
+                .Returns(RouteModelBuilder.WithRouteId(resource));
+
             var context = new DefaultHttpContext();
+
+            context.Features.Set(proxyFeature.Object);
+            context.Connection.RemoteIpAddress = IPAddress.Parse("203.0.113.7");
 
             if (clientId is not null)
             {
@@ -203,11 +214,37 @@ namespace ZM.ApiGateway.Api.UnitTests.Middlewares
                         "Test"));
             }
 
+            rateLimiter
+                .Setup(x => x.ConsumeAsync("ip:203.0.113.7", resource, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(RateLimitOutcomeBuilder.Allowed());
+
             //Act
             await middleware.InvokeAsync(context, rateLimiter.Object);
 
             //Assert
             next.Verify(x => x(context), Times.Once);
+
+            // The prefix keeps an address from ever colliding with a configured subject id.
+            rateLimiter.Verify(x => x.ConsumeAsync("ip:203.0.113.7", resource, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Theory]
+        [AutoMoqInlineData]
+        public async Task InvokeAsync_WhenClientIdentityAndRemoteIpAreMissing_Returns403AndDoesNotCallNext(
+            [Frozen] Mock<IRateLimiter> rateLimiter,
+            [Frozen] Mock<RequestDelegate> next,
+            RateLimitingMiddleware middleware)
+        {
+            //Arrange
+            // No identity and no peer address, so there is nothing to meter on.
+            var context = new DefaultHttpContext();
+
+            //Act
+            await middleware.InvokeAsync(context, rateLimiter.Object);
+
+            //Assert
+            next.Verify(x => x(context), Times.Never);
+            context.Response.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
 
             rateLimiter.Verify(
                 x => x.ConsumeAsync(

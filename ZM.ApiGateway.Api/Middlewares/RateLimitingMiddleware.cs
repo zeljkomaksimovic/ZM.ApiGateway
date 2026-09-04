@@ -19,12 +19,16 @@ namespace ZM.ApiGateway.Api.Middlewares
 
         public async Task InvokeAsync(HttpContext context, IRateLimiter rateLimiter)
         {
-            var clientKey = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
             var traceId = Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier;
+            var clientKey = ResolveClientKey(context);
 
             if (string.IsNullOrWhiteSpace(clientKey))
             {
-                await _next(context);
+                // Neither an identity nor a peer address: there is no key to meter on, so refuse
+                // rather than let the request through unmetered.
+                _logger.LogWarning("Unable to identify the caller for rate limiting. TraceId: {TraceId}.", traceId);
+
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
 
                 return;
             }
@@ -90,6 +94,27 @@ namespace ZM.ApiGateway.Api.Middlewares
                 result.Limit);
 
             await _next(context);
+        }
+
+        /// <summary>
+        /// Prefers the authenticated subject, falling back to the peer address so anonymous callers
+        /// are still metered. Only the IP form is prefixed, which keeps raw subject ids matching the
+        /// "ClientPolicies" configuration while ensuring an address can never collide with one.
+        /// </summary>
+        private static string? ResolveClientKey(HttpContext context)
+        {
+            var subject = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!string.IsNullOrWhiteSpace(subject))
+            {
+                return subject;
+            }
+
+            var address = context.Connection.RemoteIpAddress?.ToString();
+
+            return string.IsNullOrWhiteSpace(address)
+                ? null
+                : $"ip:{address}";
         }
     }
 }

@@ -38,6 +38,33 @@ namespace ZM.ApiGateway.Api.UnitTests.Resilience
             downstream.Invocations.Should().Be(2);
         }
 
+        // Pins connection hygiene we rely on but do not implement: Polly disposes an outcome it
+        // discards when the result is IDisposable, so the abandoned response releases its connection
+        // without the handler doing anything. Guards against a Polly upgrade quietly changing that.
+        [Fact]
+        public async Task SendAsync_WhenRetrying_TheDiscardedResponseIsReleased()
+        {
+            //Arrange
+            var downstream = new SequencedHandler(HttpStatusCode.ServiceUnavailable, HttpStatusCode.OK);
+
+            using var invoker = new HttpMessageInvoker(new ResilienceHandler(_pipeline, downstream));
+            using var request = new HttpRequestMessage(HttpMethod.Get, "http://downstream/api/users");
+
+            //Act
+            using var response = await invoker.SendAsync(request, CancellationToken.None);
+
+            //Assert
+            downstream.Responses.Should().HaveCount(2);
+
+            await FluentActions
+                .Awaiting(() => downstream.Responses[0].Content.ReadAsStringAsync())
+                .Should()
+                .ThrowAsync<ObjectDisposedException>();
+
+            // The one actually handed back to the caller must survive.
+            (await response.Content.ReadAsStringAsync()).Should().Be("payload");
+        }
+
         [Fact]
         public async Task SendAsync_WhenMethodIsNotGetOrHead_DoesNotRetry()
         {
@@ -66,17 +93,25 @@ namespace ZM.ApiGateway.Api.UnitTests.Resilience
                 _statuses = new Queue<HttpStatusCode>(statuses);
             }
 
-            public int Invocations { get; private set; }
+            public int Invocations => Responses.Count;
+
+            /// <summary>Every response handed out, so tests can inspect the ones the pipeline discarded.</summary>
+            public List<HttpResponseMessage> Responses { get; } = [];
 
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
-                Invocations++;
-
                 var status = _statuses.Count > 0
                     ? _statuses.Dequeue()
                     : HttpStatusCode.OK;
 
-                return Task.FromResult(new HttpResponseMessage(status));
+                var response = new HttpResponseMessage(status)
+                {
+                    Content = new StringContent("payload")
+                };
+
+                Responses.Add(response);
+
+                return Task.FromResult(response);
             }
         }
     }
