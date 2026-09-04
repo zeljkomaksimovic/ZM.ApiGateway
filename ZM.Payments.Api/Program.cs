@@ -14,28 +14,38 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
+// OrderIds match ZM.Orders.Api's seed data so an order can be followed through to its payment.
+var payments = new List<Payment>
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
+    new(
+        Guid.Parse("20000000-0000-0000-0000-000000000001"),
+        Guid.Parse("10000000-0000-0000-0000-000000000001"),
+        "Settled",
+        129.99m,
+        "Card"),
+    new(
+        Guid.Parse("20000000-0000-0000-0000-000000000002"),
+        Guid.Parse("10000000-0000-0000-0000-000000000002"),
+        "Authorized",
+        49.50m,
+        "Card"),
+    new(
+        Guid.Parse("20000000-0000-0000-0000-000000000003"),
+        Guid.Parse("10000000-0000-0000-0000-000000000003"),
+        "Refunded",
+        310.00m,
+        "BankTransfer")
 };
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+app.MapGet("/api/payments", () => payments)
+    .WithName("GetPayments");
+
+app.MapGet("/api/payments/{id:guid}", (Guid id) =>
+    payments.FirstOrDefault(x => x.Id == id) is { } payment
+        ? Results.Ok(payment)
+        : Results.NotFound())
+    .WithName("GetPaymentById");
 
 app.Run();
 
-internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+internal record Payment(Guid Id, Guid OrderId, string Status, decimal Amount, string Method);

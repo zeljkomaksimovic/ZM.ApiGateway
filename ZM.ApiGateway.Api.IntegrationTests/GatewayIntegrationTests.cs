@@ -29,7 +29,7 @@ namespace ZM.ApiGateway.Api.IntegrationTests
             using var client = CreateClient(factory, clientId, "user");
 
             // Act
-            var response = await client.GetAsync("/api/users/weatherforecast");
+            var response = await client.GetAsync("/api/users");
 
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -41,7 +41,7 @@ namespace ZM.ApiGateway.Api.IntegrationTests
             forwarded.Method.Should().Be("GET");
             forwarded.Uri.Host.Should().Be("zm.users.api");
             forwarded.Uri.Port.Should().Be(5100);
-            forwarded.Uri.AbsolutePath.Should().Be("/weatherforecast");
+            forwarded.Uri.AbsolutePath.Should().Be("/api/users");
 
             response.Headers.Contains("X-RateLimit-Limit").Should().BeTrue();
             response.Headers.Contains("X-RateLimit-Remaining").Should().BeTrue();
@@ -55,7 +55,7 @@ namespace ZM.ApiGateway.Api.IntegrationTests
             using var client = factory.CreateClient();
 
             // Act
-            var response = await client.GetAsync("/api/users/weatherforecast");
+            var response = await client.GetAsync("/api/users");
 
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -73,7 +73,7 @@ namespace ZM.ApiGateway.Api.IntegrationTests
             using var client = CreateClientWithToken(factory, "not-a-real-jwt");
 
             // Act
-            var response = await client.GetAsync("/api/users/weatherforecast");
+            var response = await client.GetAsync("/api/users");
 
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -93,7 +93,7 @@ namespace ZM.ApiGateway.Api.IntegrationTests
             using var client = CreateClient(factory, clientId, "user");
 
             // Act
-            var response = await client.GetAsync("/api/payments/weatherforecast");
+            var response = await client.GetAsync("/api/payments");
 
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
@@ -118,7 +118,7 @@ namespace ZM.ApiGateway.Api.IntegrationTests
             using var client = CreateClient(factory, clientId, "user");
 
             // Act
-            var response = await client.GetAsync("/api/users/weatherforecast");
+            var response = await client.GetAsync("/api/users");
 
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
@@ -135,9 +135,9 @@ namespace ZM.ApiGateway.Api.IntegrationTests
             using var client = CreateClient(factory, clientId, "user");
 
             // Act
-            var first = await client.GetAsync("/api/users/weatherforecast");
-            var second = await client.GetAsync("/api/users/weatherforecast");
-            var third = await client.GetAsync("/api/users/weatherforecast");
+            var first = await client.GetAsync("/api/users");
+            var second = await client.GetAsync("/api/users");
+            var third = await client.GetAsync("/api/users");
 
             // Assert
             first.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -162,9 +162,9 @@ namespace ZM.ApiGateway.Api.IntegrationTests
             using var secondClient = CreateClient(factory, secondClientId, "user");
 
             // Act
-            var firstClientAllowed = await firstClient.GetAsync("/api/users/weatherforecast");
-            var firstClientDenied = await firstClient.GetAsync("/api/users/weatherforecast");
-            var secondClientAllowed = await secondClient.GetAsync("/api/users/weatherforecast");
+            var firstClientAllowed = await firstClient.GetAsync("/api/users");
+            var firstClientDenied = await firstClient.GetAsync("/api/users");
+            var secondClientAllowed = await secondClient.GetAsync("/api/users");
 
             // Assert
             firstClientAllowed.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -184,9 +184,9 @@ namespace ZM.ApiGateway.Api.IntegrationTests
             using var client = CreateClient(factory, clientId, "user");
 
             // Act
-            var usersAllowed = await client.GetAsync("/api/users/weatherforecast");
-            var usersDenied = await client.GetAsync("/api/users/weatherforecast");
-            var ordersAllowed = await client.GetAsync("/api/orders/weatherforecast");
+            var usersAllowed = await client.GetAsync("/api/users");
+            var usersDenied = await client.GetAsync("/api/users");
+            var ordersAllowed = await client.GetAsync("/api/orders");
 
             // Assert
             usersAllowed.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -218,7 +218,7 @@ namespace ZM.ApiGateway.Api.IntegrationTests
             using var client = CreateClient(factory, clientId, "user");
 
             // Act
-            var response = await client.GetAsync("/api/users/weatherforecast");
+            var response = await client.GetAsync("/api/users");
 
             // Assert
             response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);

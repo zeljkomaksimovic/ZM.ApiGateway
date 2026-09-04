@@ -1,6 +1,32 @@
 @ZM.ApiGateway.Api_HostAddress = http://localhost:5247
 
-GET {{ZM.ApiGateway.Api_HostAddress}}/weatherforecast/
+# Routed requests require a bearer token: "user" role for users/orders, "admin" for payments.
+@token = replace-me
+
+GET {{ZM.ApiGateway.Api_HostAddress}}/health/live
+Accept: text/plain
+
+###
+
+GET {{ZM.ApiGateway.Api_HostAddress}}/health/ready
+Accept: text/plain
+
+###
+
+GET {{ZM.ApiGateway.Api_HostAddress}}/api/users
 Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+
+GET {{ZM.ApiGateway.Api_HostAddress}}/api/orders
+Accept: application/json
+Authorization: Bearer {{token}}
+
+###
+
+GET {{ZM.ApiGateway.Api_HostAddress}}/api/payments
+Accept: application/json
+Authorization: Bearer {{token}}
 
 ###

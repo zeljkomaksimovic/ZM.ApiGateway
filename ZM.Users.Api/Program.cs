@@ -14,28 +14,23 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
+// Stable ids so they can be quoted in ZM.Users.Api.http and referenced by ZM.Orders.Api's seed data.
+var users = new List<User>
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
+    new(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Ada Lovelace", "ada@zm.example"),
+    new(Guid.Parse("22222222-2222-2222-2222-222222222222"), "Grace Hopper", "grace@zm.example"),
+    new(Guid.Parse("33333333-3333-3333-3333-333333333333"), "Alan Turing", "alan@zm.example")
 };
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+app.MapGet("/api/users", () => users)
+    .WithName("GetUsers");
+
+app.MapGet("/api/users/{id:guid}", (Guid id) =>
+    users.FirstOrDefault(x => x.Id == id) is { } user
+        ? Results.Ok(user)
+        : Results.NotFound())
+    .WithName("GetUserById");
 
 app.Run();
 
-internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+internal record User(Guid Id, string Name, string Email);

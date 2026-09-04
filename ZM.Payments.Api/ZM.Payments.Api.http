@@ -1,6 +1,11 @@
 @ZM.Payments.Api_HostAddress = http://localhost:5169
 
-GET {{ZM.Payments.Api_HostAddress}}/weatherforecast/
+GET {{ZM.Payments.Api_HostAddress}}/api/payments
+Accept: application/json
+
+###
+
+GET {{ZM.Payments.Api_HostAddress}}/api/payments/20000000-0000-0000-0000-000000000001
 Accept: application/json
 
 ###

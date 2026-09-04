@@ -14,28 +14,38 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
+// UserIds match ZM.Users.Api's seed data so a user can be followed through to their orders.
+var orders = new List<Order>
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
+    new(
+        Guid.Parse("10000000-0000-0000-0000-000000000001"),
+        Guid.Parse("11111111-1111-1111-1111-111111111111"),
+        "Shipped",
+        129.99m,
+        new DateOnly(2026, 7, 14)),
+    new(
+        Guid.Parse("10000000-0000-0000-0000-000000000002"),
+        Guid.Parse("22222222-2222-2222-2222-222222222222"),
+        "Pending",
+        49.50m,
+        new DateOnly(2026, 8, 2)),
+    new(
+        Guid.Parse("10000000-0000-0000-0000-000000000003"),
+        Guid.Parse("11111111-1111-1111-1111-111111111111"),
+        "Cancelled",
+        310.00m,
+        new DateOnly(2026, 8, 17))
 };
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+app.MapGet("/api/orders", () => orders)
+    .WithName("GetOrders");
+
+app.MapGet("/api/orders/{id:guid}", (Guid id) =>
+    orders.FirstOrDefault(x => x.Id == id) is { } order
+        ? Results.Ok(order)
+        : Results.NotFound())
+    .WithName("GetOrderById");
 
 app.Run();
 
-internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+internal record Order(Guid Id, Guid UserId, string Status, decimal Total, DateOnly PlacedOn);

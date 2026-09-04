@@ -1,6 +1,11 @@
 @ZM.Orders.Api_HostAddress = http://localhost:5188
 
-GET {{ZM.Orders.Api_HostAddress}}/weatherforecast/
+GET {{ZM.Orders.Api_HostAddress}}/api/orders
+Accept: application/json
+
+###
+
+GET {{ZM.Orders.Api_HostAddress}}/api/orders/10000000-0000-0000-0000-000000000001
 Accept: application/json
 
 ###
