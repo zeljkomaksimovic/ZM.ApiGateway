@@ -12,6 +12,10 @@ EXPOSE 5001
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+# ZM.RateLimiter.* come from the local feed, so the config and the packages themselves have to be
+# in the image before restore runs -- the later "COPY . ." is too late for that.
+COPY ["NuGet.config", "./"]
+COPY ["packages/", "packages/"]
 COPY ["ZM.ApiGateway.Api/ZM.ApiGateway.Api.csproj", "ZM.ApiGateway.Api/"]
 RUN dotnet restore "./ZM.ApiGateway.Api/ZM.ApiGateway.Api.csproj"
 COPY . .
